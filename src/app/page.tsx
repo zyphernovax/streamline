@@ -15,8 +15,6 @@ import {
   erc20Abi,
 } from "@/lib/constants";
 
-const PRESET_AMOUNTS = ["1", "5", "10"];
-
 export default function Home() {
   const { isConnected, chainId } = useAccount();
   const [amount, setAmount] = useState("");
@@ -69,23 +67,6 @@ export default function Home() {
               </p>
             )}
 
-            <div className="flex gap-2">
-              {PRESET_AMOUNTS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setAmount(preset)}
-                  className={`flex-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    amount === preset
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                  }`}
-                >
-                  {preset} USDC
-                </button>
-              ))}
-            </div>
-
             <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
               Amount (USDC)
               <input
@@ -112,17 +93,9 @@ export default function Home() {
                   : "Send Tip"}
             </button>
 
-            {isConfirmed && hash && (
+            {isConfirmed && (
               <p className="text-sm text-green-600 dark:text-green-400">
-                Tip sent! Thank you.{" "}
-                <a
-                  href={`${baseSepolia.blockExplorers.default.url}/tx/${hash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  View transaction
-                </a>
+                Tip sent! Thank you.
               </p>
             )}
             {error && (
