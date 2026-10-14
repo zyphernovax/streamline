@@ -8,7 +8,9 @@ A single-page tip jar for a creator. Visitors connect a wallet, enter an amount,
 
 - Wallet connect via [RainbowKit](https://www.rainbowkit.com) + [wagmi](https://wagmi.sh) (MetaMask, Rainbow, Base, WalletConnect)
 - Locked to Base Sepolia, with a prompt when the wallet is on the wrong network
+- Preset amount buttons (1 / 5 / 10 USDC) plus a free-form amount input
 - Sends an ERC-20 `transfer` of USDC to a fixed creator address, with pending / confirming / success / error states
+- Links to the confirmed transaction on BaseScan
 
 ## Tech stack
 
