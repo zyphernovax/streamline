@@ -1,68 +1,110 @@
+"use client";
+
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
+import { useState } from "react";
+import { parseUnits } from "viem";
+import { useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
+import {
+  CREATOR_ADDRESS,
+  CREATOR_NAME,
+  CREATOR_PHOTO_URL,
+  USDC_ADDRESS,
+  USDC_DECIMALS,
+  erc20Abi,
+} from "@/lib/constants";
 
 export default function Home() {
+  const { isConnected, chainId } = useAccount();
+  const [amount, setAmount] = useState("");
+
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({ hash });
+
+  const onWrongNetwork = isConnected && chainId !== baseSepolia.id;
+  const parsedAmount = Number(amount);
+  const isAmountValid = amount !== "" && parsedAmount > 0;
+
+  function handleSendTip() {
+    if (!isAmountValid) return;
+    writeContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [CREATOR_ADDRESS, parseUnits(amount, USDC_DECIMALS)],
+      chainId: baseSepolia.id,
+    });
+  }
+
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+      <main className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white p-10 shadow-sm dark:bg-zinc-900">
         <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+          src={CREATOR_PHOTO_URL}
+          alt={CREATOR_NAME}
+          width={96}
+          height={96}
+          className="h-24 w-24 rounded-full object-cover bg-zinc-200 dark:bg-zinc-700"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+            {CREATOR_NAME}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Send a tip in testnet USDC on Base Sepolia
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <ConnectButton />
+
+        {isConnected && (
+          <div className="flex w-full flex-col gap-3">
+            {onWrongNetwork && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Switch your wallet to Base Sepolia to send a tip.
+              </p>
+            )}
+
+            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Amount (USDC)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="5.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-base text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              />
+            </label>
+
+            <button
+              onClick={handleSendTip}
+              disabled={!isAmountValid || onWrongNetwork || isPending || isConfirming}
+              className="rounded-full bg-foreground px-5 py-3 text-base font-medium text-background transition-colors hover:bg-[#383838] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-[#ccc]"
+            >
+              {isPending
+                ? "Confirm in wallet…"
+                : isConfirming
+                  ? "Sending tip…"
+                  : "Send Tip"}
+            </button>
+
+            {isConfirmed && (
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Tip sent! Thank you.
+              </p>
+            )}
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {error.message}
+              </p>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

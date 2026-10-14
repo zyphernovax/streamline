@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Streamline — Crypto Tip Jar
 
-## Getting Started
+A single-page tip jar for a creator. Visitors connect a wallet, enter an amount, and send testnet USDC directly to the creator's wallet on **Base Sepolia**. No accounts, no custodian, no middleman.
 
-First, run the development server:
+> **Testnet only.** The app is wired to Base Sepolia and test USDC. Nothing here moves real funds.
+
+## Features
+
+- Wallet connect via [RainbowKit](https://www.rainbowkit.com) + [wagmi](https://wagmi.sh) (MetaMask, Rainbow, Base, WalletConnect)
+- Locked to Base Sepolia, with a prompt when the wallet is on the wrong network
+- Sends an ERC-20 `transfer` of USDC to a fixed creator address, with pending / confirming / success / error states
+
+## Tech stack
+
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS 4 · wagmi 2 · viem · RainbowKit · TanStack Query
+
+## Getting started
+
+### 1. Install
+
+```bash
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in `.env.local`:
+
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Free project ID from [cloud.reown.com](https://cloud.reown.com). Required — RainbowKit throws on startup without it. |
+| `NEXT_PUBLIC_CREATOR_ADDRESS` | The `0x…` wallet address that receives tips. |
+
+Both are `NEXT_PUBLIC_*`, so they are embedded in the browser bundle. Never put a private key or seed phrase in either.
+
+Restart the dev server after editing `.env.local`; Next.js only reads it at startup.
+
+### 3. Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Trying a tip
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+You need two things in the sending wallet, both on Base Sepolia:
 
-## Learn More
+1. **Base Sepolia ETH** for gas
+2. **Testnet USDC** (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`)
 
-To learn more about Next.js, take a look at the following resources:
+Both are available from the [Coinbase developer faucet](https://portal.cdp.coinbase.com/products/faucet). Then connect, enter an amount, and click **Send Tip**. You can verify the transfer on [Base Sepolia BaseScan](https://sepolia.basescan.org).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+MetaMask won't show USDC until you import the token contract address above as a custom token.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Customizing
 
-## Deploy on Vercel
+| What | Where |
+| --- | --- |
+| Creator name and photo | `CREATOR_NAME`, `CREATOR_PHOTO_URL` in [src/lib/constants.ts](src/lib/constants.ts); replace [public/creator.jpg](public/creator.jpg) |
+| USDC contract / ABI | [src/lib/constants.ts](src/lib/constants.ts) |
+| Chain and wallet config | [src/wagmi.ts](src/wagmi.ts) |
+| Providers (wagmi, RainbowKit, React Query) | [src/app/providers.tsx](src/app/providers.tsx) |
+| Tip page UI and send logic | [src/app/page.tsx](src/app/page.tsx) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/
+    layout.tsx       Root layout, wraps the app in <Providers>
+    providers.tsx    wagmi + React Query + RainbowKit providers
+    page.tsx         Tip jar page
+  lib/
+    constants.ts     USDC address, ABI, creator info
+    x402-stub.js     Build-time stub (see below)
+  wagmi.ts           wagmi / RainbowKit config
+```
+
+## Notes
+
+**x402 stub.** RainbowKit's default wallet list includes the Base Account connector, which pulls in `@coinbase/cdp-sdk`. That SDK dynamically imports optional `@x402/*` packages that aren't installed, and the bundler fails to resolve them at build time. [next.config.ts](next.config.ts) aliases those specifiers to [src/lib/x402-stub.js](src/lib/x402-stub.js). The real code paths are never called by this app.
+
+**Going to mainnet.** This is a deliberate, separate step: swap `baseSepolia` for `base` in [src/wagmi.ts](src/wagmi.ts), [src/app/providers.tsx](src/app/providers.tsx) and [src/app/page.tsx](src/app/page.tsx), and replace `USDC_ADDRESS` with the mainnet USDC contract. Re-test with small real amounts first.
+
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | Run ESLint |
